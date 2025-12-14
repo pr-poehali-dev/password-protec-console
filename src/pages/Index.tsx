@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -8,12 +8,14 @@ const INITIAL_PASSWORD = '92938832984';
 const END_PASSWORD = 'NULLEND12';
 
 export default function Index() {
-  const [stage, setStage] = useState<'login' | 'console' | 'protocol'>('login');
+  const [stage, setStage] = useState<'login' | 'console' | 'protocol' | 'off'>('login');
   const [inputValue, setInputValue] = useState('');
   const [consoleLines, setConsoleLines] = useState<string[]>([]);
+  const [commandHistory, setCommandHistory] = useState<string[]>([]);
   const [showTracking, setShowTracking] = useState(false);
   const [userName] = useState(`USER_${Math.floor(Math.random() * 9999)}`);
   const [currentTime, setCurrentTime] = useState('');
+  const consoleEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const updateTime = () => {
@@ -34,6 +36,10 @@ export default function Index() {
     }
   }, [stage]);
 
+  useEffect(() => {
+    consoleEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [consoleLines]);
+
   const handleLogin = useCallback(() => {
     if (inputValue === INITIAL_PASSWORD) {
       setConsoleLines([
@@ -49,7 +55,8 @@ export default function Index() {
         '',
         '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
         '',
-        'Type END to terminate session...',
+        'Type HELP for more information...',
+        '',
       ]);
       setStage('console');
       setInputValue('');
@@ -60,7 +67,10 @@ export default function Index() {
   }, [inputValue]);
 
   const handleConsoleCommand = useCallback(() => {
-    if (inputValue.toUpperCase() === 'END') {
+    const command = inputValue.toUpperCase().trim();
+    setCommandHistory(prev => [...prev, inputValue]);
+
+    if (command === 'END') {
       setConsoleLines(prev => [
         ...prev,
         `> ${inputValue}`,
@@ -70,15 +80,124 @@ export default function Index() {
       ]);
       setStage('protocol');
       setInputValue('');
-    } else {
+      return;
+    }
+
+    if (command === 'HELP') {
       setConsoleLines(prev => [
         ...prev,
         `> ${inputValue}`,
-        '> UNKNOWN COMMAND',
+        '',
+        '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+        'AVAILABLE COMMANDS:',
+        '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+        '',
+        'HELP     - Display this help message',
+        'INFO     - Show object detailed information',
+        'KILL     - Terminate object [RESTRICTED]',
+        'LOG      - Display command history',
+        'NULL     - No operation',
+        'OFF      - Power down console',
+        'END      - Terminate session',
+        '',
+        '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+        '',
       ]);
       setInputValue('');
+      return;
     }
-  }, [inputValue]);
+
+    if (command === 'INFO') {
+      setConsoleLines(prev => [
+        ...prev,
+        `> ${inputValue}`,
+        '',
+        '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+        'OBJECT 12 - DETAILED INFORMATION',
+        '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+        '',
+        'START DATE: 2022',
+        'PARENT COMPANY: NULLDATE (subsidiary)',
+        'LOCATION: ~RUSSIA (approximate)',
+        'PRIMARY OBJECTIVE: ELIMINATE',
+        '',
+        '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+        '',
+      ]);
+      setInputValue('');
+      return;
+    }
+
+    if (command === 'KILL') {
+      setConsoleLines(prev => [
+        ...prev,
+        `> ${inputValue}`,
+        '',
+        '⚠️  ACCESS DENIED',
+        '⚠️  YOU DO NOT HAVE PERMISSION',
+        '',
+        'Required clearance level: ALPHA-9',
+        'Your clearance level: BETA-3',
+        '',
+      ]);
+      setInputValue('');
+      return;
+    }
+
+    if (command === 'LOG') {
+      setConsoleLines(prev => [
+        ...prev,
+        `> ${inputValue}`,
+        '',
+        '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+        'COMMAND HISTORY:',
+        '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+        '',
+        ...commandHistory.map((cmd, i) => `${i + 1}. ${cmd}`),
+        '',
+        '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+        '',
+      ]);
+      setInputValue('');
+      return;
+    }
+
+    if (command === 'NULL') {
+      setConsoleLines(prev => [
+        ...prev,
+        `> ${inputValue}`,
+        '',
+      ]);
+      setInputValue('');
+      return;
+    }
+
+    if (command === 'OFF') {
+      setConsoleLines(prev => [
+        ...prev,
+        `> ${inputValue}`,
+        '',
+        'POWERING DOWN CONSOLE...',
+        'DISCONNECTING FROM MAINFRAME...',
+        'SESSION TERMINATED',
+        '',
+      ]);
+      setInputValue('');
+      setTimeout(() => {
+        setStage('off');
+      }, 2000);
+      return;
+    }
+
+    setConsoleLines(prev => [
+      ...prev,
+      `> ${inputValue}`,
+      '> UNKNOWN COMMAND',
+      '> Type HELP for available commands',
+      '',
+    ]);
+    setInputValue('');
+  }, [inputValue, commandHistory]);
 
   const handleProtocol = useCallback(() => {
     if (inputValue === END_PASSWORD) {
@@ -120,6 +239,17 @@ export default function Index() {
       handleProtocol();
     }
   }, [stage, handleLogin, handleConsoleCommand, handleProtocol]);
+
+  if (stage === 'off') {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center p-4">
+        <div className="text-[#00FF00] text-center opacity-20 font-mono">
+          <div className="text-4xl mb-4">█</div>
+          <div className="text-sm">SYSTEM OFFLINE</div>
+        </div>
+      </div>
+    );
+  }
 
   if (stage === 'login') {
     return (
@@ -171,28 +301,29 @@ export default function Index() {
 
   return (
     <>
-      <div className="min-h-screen bg-black text-[#00FF00] p-8 font-mono">
-        <div className="max-w-4xl mx-auto">
-          <div className="mb-4 flex justify-between items-center text-xs opacity-70">
+      <div className="min-h-screen bg-black text-[#00FF00] p-4 md:p-8 font-mono overflow-auto">
+        <div className="max-w-4xl mx-auto pb-20">
+          <div className="mb-4 flex justify-between items-center text-xs opacity-70 sticky top-0 bg-black z-10 py-2">
             <span>TERMINAL v2.4.1</span>
             <span>{currentTime}</span>
           </div>
 
           <div className="space-y-1 mb-8">
             {consoleLines.map((line, i) => (
-              <div key={i} className={`text-sm ${line.includes('━') ? 'text-[#00FF00]' : line.includes('⚠️') ? 'text-red-500 font-bold' : ''}`}>
+              <div key={i} className={`text-xs md:text-sm ${line.includes('━') ? 'text-[#00FF00]' : line.includes('⚠️') ? 'text-red-500 font-bold' : ''} break-words`}>
                 {line}
               </div>
             ))}
+            <div ref={consoleEndRef} />
           </div>
 
-          <form onSubmit={handleSubmit} className="flex items-center gap-2">
+          <form onSubmit={handleSubmit} className="flex items-center gap-2 sticky bottom-4 bg-black py-2">
             <span className="text-[#00FF00]">&gt;</span>
             <Input
               type="text"
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
-              className="flex-1 bg-black border-none text-[#00FF00] font-mono focus:ring-0 focus:outline-none p-0"
+              className="flex-1 bg-black border-none text-[#00FF00] font-mono focus:ring-0 focus:outline-none p-0 text-xs md:text-sm"
               autoFocus
               autoComplete="off"
             />
@@ -202,13 +333,13 @@ export default function Index() {
       </div>
 
       <AlertDialog open={showTracking} onOpenChange={setShowTracking}>
-        <AlertDialogContent className="bg-black border-[#00FF00] text-[#00FF00] font-mono">
+        <AlertDialogContent className="bg-black border-[#00FF00] text-[#00FF00] font-mono max-w-sm md:max-w-lg">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-xl tracking-wider">⚠️ TRACKING ALERT</AlertDialogTitle>
+            <AlertDialogTitle className="text-lg md:text-xl tracking-wider">⚠️ TRACKING ALERT</AlertDialogTitle>
             <AlertDialogDescription className="text-[#00FF00] space-y-2">
-              <div className="text-sm">━━━━━━━━━━━━━━━━━━━━━━━━━━</div>
-              <div className="text-base font-bold">{userName} IS BEING MONITORED</div>
-              <div className="text-sm">━━━━━━━━━━━━━━━━━━━━━━━━━━</div>
+              <div className="text-xs md:text-sm">━━━━━━━━━━━━━━━━━━━━━━━━━━</div>
+              <div className="text-sm md:text-base font-bold">{userName} IS BEING MONITORED</div>
+              <div className="text-xs md:text-sm">━━━━━━━━━━━━━━━━━━━━━━━━━━</div>
               <div className="text-xs opacity-70 pt-2">All activities are being logged and analyzed.</div>
             </AlertDialogDescription>
           </AlertDialogHeader>
